@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Hub — Powered by Gemini</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .hero {
+      text-align: center;
+      padding: 80px 24px 60px;
+      background: radial-gradient(ellipse at 50% 0%, #1e3a8a 0%, transparent 70%);
+    }
+    .logo {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      text-decoration: none;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card-icon { font-size: 2rem; }
+    .card h2 { font-size: 1.2rem; font-weight: 600; }
+    .card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; flex: 1; }
+    .card-cta {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #60a5fa;
+      margin-top: 4px;
+    }
+    footer { text-align: center; padding: 24px; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-content">
+      <div class="logo">✦ AI Hub</div>
+      <p class="tagline">A collection of AI-powered tools built on Google Gemini</p>
+    </div>
+  </header>
+
+  <main class="grid-container">
+    <a href="chat.html" class="card">
+      <div class="card-icon">💬</div>
+      <h2>AI Chat</h2>
+      <p>Have a conversation with Gemini. Ask anything, get smart answers in real time.</p>
+      <span class="card-cta">Open Chat →</span>
+    </a>
+
+    <a href="summarizer.html" class="card">
+      <div class="card-icon">📝</div>
+      <h2>Text Summarizer</h2>
+      <p>Paste any long text and get a concise, accurate summary instantly.</p>
+      <span class="card-cta">Summarize →</span>
+    </a>
+
+    <a href="code-helper.html" class="card">
+      <div class="card-icon">💻</div>
+      <h2>Code Helper</h2>
+      <p>Explain, debug, or generate code in any programming language.</p>
+      <span class="card-cta">Write Code →</span>
+    </a>
+
+    <a href="creative-writer.html" class="card">
+      <div class="card-icon">✍️</div>
+      <h2>Creative Writer</h2>
+      <p>Generate stories, poems, essays, and creative content on any topic.</p>
+      <span class="card-cta">Start Writing →</span>
+    </a>
+
+    <a href="translator.html" class="card">
+      <div class="card-icon">🌍</div>
+      <h2>Translator</h2>
+      <p>Translate text between dozens of languages with natural, fluent output.</p>
+      <span class="card-cta">Translate →</span>
+    </a>
+
+    <a href="quiz-maker.html" class="card">
+      <div class="card-icon">🧠</div>
+      <h2>Quiz Maker</h2>
+      <p>Enter any topic and get a custom quiz with questions and answers.</p>
+      <span class="card-cta">Make Quiz →</span>
+    </a>
+
+    <a href="test-api.html" class="card">
+      <div class="card-icon">🔑</div>
+      <h2>API Key Tester</h2>
+      <p>Test whether your Gemini or OpenAI API key is valid and working.</p>
+      <span class="card-cta">Test Key →</span>
+    </a>
+  </main>
+
+  <footer>
+    <p>Powered by <strong>Google Gemini API</strong> &nbsp;·&nbsp; AI Hub &copy; 2026</p>
+  </footer>
+</body>
+</html>

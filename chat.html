@@ -1,0 +1,538 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Chat - AI Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Top bar */
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--bg); }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .back-link { color: var(--muted); text-decoration: none; font-size: 0.85rem; transition: color .15s; }
+    .back-link:hover { color: var(--text); }
+    .model-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 3px 12px; font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 6px; border-color: #f59e0b; }
+    .model-dot { width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; }
+    .topbar-right { display: flex; gap: 8px; }
+    .top-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); padding: 5px 12px; font-size: 0.8rem; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .top-btn:hover { background: var(--surface); color: var(--text); }
+
+    /* Chat scroll */
+    .chat-area { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+    .chat-area::-webkit-scrollbar { width: 5px; }
+    .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Welcome */
+    .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; gap: 14px; padding: 40px 20px; text-align: center; }
+    .welcome-icon { font-size: 2.4rem; }
+    .welcome h1 { font-size: 1.55rem; font-weight: 600; }
+    .welcome p { color: var(--muted); font-size: 0.92rem; max-width: 380px; line-height: 1.6; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 6px; }
+    .chip { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 7px 15px; font-size: 0.83rem; cursor: pointer; color: var(--text); transition: all .15s; font-family: inherit; }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Messages */
+    .msg-row { padding: 18px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .msg-row.ai-row { background: rgba(255,255,255,0.025); }
+    .msg-inner { max-width: 740px; margin: 0 auto; padding: 0 22px; display: flex; gap: 13px; align-items: flex-start; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0; margin-top: 3px; }
+    .avatar.user { background: var(--accent-hover); color: white; }
+    .avatar.ai { background: var(--surface); border: 1px solid var(--border); color: var(--accent); }
+    .msg-content { flex: 1; min-width: 0; }
+    .msg-name { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+    .msg-text { font-size: 0.96rem; line-height: 1.75; word-break: break-word; }
+    .msg-text h1 { font-size: 1.25rem; font-weight: 700; margin: 14px 0 6px; }
+    .msg-text h2 { font-size: 1.1rem; font-weight: 600; margin: 12px 0 5px; }
+    .msg-text h3 { font-size: 1rem; font-weight: 600; margin: 10px 0 4px; }
+    .msg-text p { margin-bottom: 9px; }
+    .msg-text p:last-child { margin-bottom: 0; }
+    .msg-text ul, .msg-text ol { padding-left: 20px; margin-bottom: 9px; }
+    .msg-text li { margin-bottom: 3px; }
+    .msg-text strong { font-weight: 700; color: var(--accent); }
+    .msg-text em { font-style: italic; color: #ccc; }
+    .msg-text a { color: var(--accent); text-decoration: underline; }
+    .msg-text hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+    .msg-text blockquote { border-left: 3px solid var(--accent); padding-left: 13px; color: var(--muted); margin: 8px 0; font-style: italic; }
+    .msg-text table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.88rem; }
+    .msg-text th, .msg-text td { border: 1px solid var(--border); padding: 7px 11px; text-align: left; }
+    .msg-text th { background: var(--surface); font-weight: 600; }
+    .msg-text code { background: #1a1a2e; color: #d1d1d1; padding: 2px 6px; border-radius: 4px; font-family: "Fira Code", monospace; font-size: 0.87em; }
+    .msg-text img { max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; border: 1px solid var(--border); display: block; }
+
+    /* Code blocks */
+    .code-block { background: #0d0d0d; border: 1px solid var(--border); border-radius: 10px; margin: 10px 0; overflow: hidden; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; padding: 7px 13px; background: #1a1a1a; border-bottom: 1px solid var(--border); }
+    .code-lang { font-size: 0.76rem; color: var(--muted); font-family: monospace; }
+    .copy-code-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.76rem; font-family: inherit; padding: 2px 6px; border-radius: 4px; transition: color .15s; }
+    .copy-code-btn:hover { color: var(--text); }
+    .code-block pre { padding: 13px 15px; overflow-x: auto; margin: 0; font-family: "Fira Code", monospace; font-size: 0.87rem; line-height: 1.6; color: #d1d1d1; }
+
+    /* Action buttons */
+    .msg-actions { display: flex; gap: 5px; margin-top: 8px; opacity: 0; transition: opacity .15s; }
+    .msg-row:hover .msg-actions { opacity: 1; }
+    .act-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); padding: 3px 9px; font-size: 0.76rem; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .act-btn:hover { background: var(--surface); color: var(--text); }
+
+    /* Typing dots */
+    .typing-dots { display: flex; gap: 6px; align-items: center; padding: 4px 0; }
+    .typing-dots .ai-emoji { font-size: 1.15rem; margin-right: 6px; animation: pulse 1.5s ease-in-out infinite; line-height: 1; }
+    .typing-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: tdot 1.2s infinite; box-shadow: 0 0 8px rgba(59,130,246,0.4); display: inline-block; }
+    .typing-dots .dot:nth-child(2) { animation-delay: 0s; }
+    .typing-dots .dot:nth-child(3) { animation-delay: .2s; }
+    .typing-dots .dot:nth-child(4) { animation-delay: .4s; }
+    @keyframes tdot { 0%,60%,100% { transform: translateY(0); opacity: .3; } 30% { transform: translateY(-6px); opacity: 1; } }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+
+    /* Blinking cursor — must not inherit dot styles */
+    .cursor { display: inline-block !important; width: 2px !important; height: 1em !important; background: var(--accent) !important; margin-left: 1px; vertical-align: text-bottom; animation: cblink .65s step-end infinite !important; border-radius: 0 !important; box-shadow: none !important; }
+    @keyframes cblink { 50% { opacity: 0; } }
+
+    /* Input */
+    .input-area { flex-shrink: 0; padding: 14px 20px 18px; border-top: 1px solid var(--border); }
+    .input-wrap { max-width: 740px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; display: flex; align-items: flex-end; padding: 4px 4px 4px 15px; transition: border-color .15s; }
+    .input-wrap:focus-within { border-color: #666; }
+    #userInput { flex: 1; background: none; border: none; outline: none; color: var(--text); font-family: inherit; font-size: 0.95rem; line-height: 1.6; resize: none; max-height: 180px; padding: 9px 0; overflow-y: auto; }
+    #userInput::placeholder { color: var(--muted); }
+    .send-btn { width: 36px; height: 36px; border-radius: 9px; border: none; background: var(--accent); color: #212121; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin: 4px; transition: opacity .15s, background .15s; }
+    .send-btn:disabled { background: var(--border); cursor: not-allowed; }
+    .send-btn:not(:disabled):hover { opacity: .82; }
+    .send-btn svg { width: 17px; height: 17px; }
+    .input-hint { text-align: center; font-size: 0.72rem; color: var(--muted); margin-top: 7px; max-width: 740px; margin-left: auto; margin-right: auto; }
+
+    /* Web search toggle */
+    .search-toggle { display: flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--muted); font-family: inherit; font-size: 0.8rem; cursor: pointer; transition: all .15s; }
+    .search-toggle:hover { background: var(--surface); color: var(--text); }
+    .search-toggle.on { border-color: #f97316; color: #f97316; background: rgba(249,115,22,0.08); }
+    .search-toggle .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    /* Settings overlay */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
+    .overlay.show { display: flex; }
+    .settings-box { background: #1a1a24; border: 1px solid #3a3a4a; border-radius: 16px; padding: 28px; width: 100%; max-width: 460px; margin: 20px; }
+    .settings-box h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+    .settings-box h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-top: 15px; }
+    .settings-box p  { color: var(--muted); font-size: 0.85rem; margin-bottom: 22px; line-height: 1.5; }
+    .settings-field { margin-bottom: 18px; }
+    .settings-field label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+    .settings-field input { width: 100%; background: #0f0f13; border: 1px solid #3a3a4a; border-radius: 8px; color: var(--text); font-family: "Courier New", monospace; font-size: 0.85rem; padding: 10px 12px; outline: none; transition: border-color .15s; }
+    .settings-field input:focus { border-color: #666; }
+    .settings-field input::placeholder { color: var(--muted); }
+    .settings-row { display: flex; gap: 10px; margin-top: 4px; }
+    .s-btn { flex: 1; padding: 10px; border-radius: 9px; border: none; font-family: inherit; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    .s-btn-save   { background: var(--accent); color: #212121; }
+    .s-btn-cancel { background: #2f2f3f; color: var(--muted); }
+    .s-btn:hover  { opacity: 0.85; }
+    .settings-note { font-size: 0.78rem; color: var(--muted); margin-top: 14px; line-height: 1.5; }
+    .s-select { width: 100%; background: #0f0f13; border: 1px solid #3a3a4a; border-radius: 8px; color: var(--text); padding: 10px; outline: none; margin-bottom: 15px; cursor: pointer; }
+    .settings-note a { color: #60a5fa; }
+
+    /* Source cards */
+    .sources { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .source-card { background: #1a1a2e; border: 1px solid #2e2e4e; border-radius: 8px; padding: 7px 11px; font-size: 0.78rem; text-decoration: none; color: var(--muted); transition: all .15s; max-width: 220px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: block; }
+    .source-card:hover { border-color: var(--accent); color: var(--text); }
+    .source-label { font-size: 0.72rem; color: var(--muted); margin-top: 10px; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="index.html" class="back-link">&#8592; Hub</a>
+    <div class="model-pill"><div class="model-dot"></div>Groq / Llama 3</div>
+  </div>
+  <div class="topbar-right">
+    <button class="search-toggle" id="searchToggle" onclick="toggleWebSearch()" title="Toggle web search via Serper">
+      <span class="dot"></span> Web Search
+    </button>
+    <button class="top-btn" onclick="showSettings()">&#9881; Keys</button>
+    <button class="top-btn" onclick="newChat()">+ New chat</button>
+    <button class="top-btn" onclick="exportChat()">&#8595; Export</button>
+  </div>
+</div>
+
+<!-- Settings overlay -->
+<div class="overlay" id="overlay" onclick="closeSettingsOutside(event)">
+  <div class="settings-box">
+    <h2>&#9881; API Keys</h2>
+    <p>Enter your Groq API key below to power AI Hub.</p>
+
+    <div class="settings-field">
+      <label>Groq API Key</label>
+      <input type="password" id="s-groq" placeholder="gsk_..." />
+    </div>
+    <div class="settings-field">
+      <label>Serper API Key (for Web Search)</label>
+      <input type="password" id="s-serper" placeholder="your-serper-key..." />
+    </div>
+    <div class="settings-row">
+      <button class="s-btn s-btn-save" onclick="saveSettings()">&#10003; Save Keys</button>
+      <button class="s-btn s-btn-cancel" onclick="closeSettings()">Cancel</button>
+    </div>
+    <p class="settings-note">
+      Get a free Groq key: <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a><br>
+      Get a free Serper key: <a href="https://serper.dev" target="_blank">serper.dev</a> (2,500 searches/month free)
+    </p>
+  </div>
+</div>
+
+<div class="chat-area" id="chatArea">
+  <div class="welcome" id="welcome">
+    <div class="welcome-icon">&#10022;</div>
+    <h1>How can I help you today?</h1>
+    <p>Ask me anything &mdash; code, essays, explanations, ideas, and more.</p>
+    <div class="chips">
+      <button class="chip" onclick="useChip(this)">Who are you?</button>
+      <button class="chip" onclick="useChip(this)">Latest AI news today</button>
+      <button class="chip" onclick="useChip(this)">Write a Python web scraper</button>
+      <button class="chip" onclick="useChip(this)">What is quantum computing?</button>
+      <button class="chip" onclick="useChip(this)">Current Bitcoin price</button>
+      <button class="chip" onclick="useChip(this)">Give me a JavaScript tip</button>
+    </div>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-wrap">
+    <textarea id="userInput" placeholder="Message AI Hub..." rows="1"></textarea>
+    <button class="send-btn" id="sendBtn" disabled title="Send (Enter)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+      </svg>
+    </button>
+  </div>
+  <div class="input-hint">AI Hub can make mistakes. Verify important information.</div>
+</div>
+
+<script>
+/* ── Keys — load from localStorage if saved ── */
+var GROQ_KEY   = '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';
+var SERPER_KEY = localStorage.getItem('serper_key') || '';
+var API_URL    = 'https://api.groq.com/openai/v1/chat/completions';
+var webSearch  = false;
+
+var SYSTEM_SEED_USER  = 'You are AI Hub, a smart and friendly AI assistant like ChatGPT. Always answer questions clearly, accurately, and helpfully. Use markdown: **bold**, *italic*, ## headers, bullet lists, numbered lists, code blocks with language tags, tables, and images: !alt. Be warm, direct, and thorough. When given web search results, use them to give an up-to-date, accurate answer and cite sources. If the user asks for a picture and you find a relevant image URL, include it using Markdown.';
+var SYSTEM_SEED_MODEL = 'Got it! I am AI Hub. I will answer your questions clearly and helpfully, using web search results when provided. How can I help you today?';
+
+var chatArea  = document.getElementById('chatArea');
+var userInput = document.getElementById('userInput');
+var sendBtn   = document.getElementById('sendBtn');
+var welcome   = document.getElementById('welcome');
+var modelPill = document.querySelector('.model-pill');
+var chatHistory = [];
+var busy      = false;
+
+/* ── Settings panel ── */
+function showSettings() {
+  document.getElementById('s-groq').value = GROQ_KEY;
+  document.getElementById('s-serper').value = SERPER_KEY;
+  document.getElementById('overlay').classList.add('show');
+}
+function closeSettings() { document.getElementById('overlay').classList.remove('show'); }
+function closeSettingsOutside(e) { if (e.target === document.getElementById('overlay')) closeSettings(); }
+function saveSettings() {
+  var grk = document.getElementById('s-groq').value.trim();
+  var sk = document.getElementById('s-serper').value.trim();
+  if (grk) { GROQ_KEY = grk; localStorage.setItem('groq_key', grk); }
+  if (sk) { SERPER_KEY = sk; localStorage.setItem('serper_key', sk); }
+  closeSettings();
+}
+
+/* ── Web search toggle ── */
+function toggleWebSearch() {
+  if (!SERPER_KEY) {
+    showSettings();
+    alert('Please enter your Serper API key first to enable web search.');
+    return;
+  }
+  webSearch = !webSearch;
+  var btn = document.getElementById('searchToggle');
+  btn.className = 'search-toggle' + (webSearch ? ' on' : '');
+  btn.innerHTML = '<span class="dot"></span> Web Search ' + (webSearch ? 'ON' : '');
+}
+
+/* ── Input resize ── */
+userInput.addEventListener('input', function() {
+  userInput.style.height = 'auto';
+  userInput.style.height = Math.min(userInput.scrollHeight, 180) + 'px';
+  sendBtn.disabled = !userInput.value.trim() || busy;
+});
+userInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!sendBtn.disabled) send(); }
+});
+function useChip(btn) { userInput.value = btn.textContent.trim(); userInput.dispatchEvent(new Event('input')); send(); }
+
+/* ── Serper web search ── */
+async function searchWeb(query) {
+  var res = await fetch('https://google.serper.dev/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-API-KEY': SERPER_KEY },
+    body: JSON.stringify({ q: query, num: 6 })
+  });
+  if (!res.ok) throw new Error('Serper search failed: HTTP ' + res.status);
+  return await res.json();
+}
+
+function buildSearchContext(data) {
+  var ctx = 'Here are real-time web search results for this query:\n\n';
+  var sources = [];
+  if (data.answerBox) {
+    ctx += 'ANSWER BOX: ' + (data.answerBox.answer || data.answerBox.snippet || '') + '\n\n';
+  }
+  if (data.knowledgeGraph) {
+    ctx += 'KNOWLEDGE GRAPH: ' + data.knowledgeGraph.title + ' — ' + (data.knowledgeGraph.description || '') + '\n\n';
+  }
+  if (data.organic) {
+    data.organic.slice(0, 5).forEach(function(r, i) {
+      ctx += (i+1) + '. ' + r.title + '\n   ' + r.snippet + '\n   URL: ' + r.link + '\n\n';
+      sources.push({ title: r.title, url: r.link });
+    });
+  }
+  ctx += 'Use the above search results to give an accurate, up-to-date answer. Cite sources where relevant.';
+  return { context: ctx, sources: sources };
+}
+
+/* ── Markdown renderer ── */
+function renderMD(raw) {
+  var blocks = [];
+  var s = raw.replace(/```([\w]*)\n?([\s\S]*?)```/g, function(_, lang, code) {
+    var i = blocks.length; blocks.push({ lang: lang || 'text', code: code }); return '\x00C' + i + '\x00';
+  });
+  s = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s = s.replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>');
+  s = s.replace(/^---+$/gm,'<hr>');
+  s = s.replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>');
+
+  /* Tables */
+  s = s.replace(/((?:^\|.+\|\n?)+)/gm, function (m) {
+    var rows = m.trim().split('\n');
+    var sep  = function (r) { return /^[\|\s\-:]+$/.test(r); };
+    var out  = '<table>';
+    var hdr  = true;
+    rows.forEach(function (r) {
+      if (sep(r)) { hdr = false; return; }
+      var tag   = hdr ? 'th' : 'td';
+      var cells = r.split('|').slice(1, -1);
+      out += '<tr>' + cells.map(function (c) {
+        return '<' + tag + '>' + c.trim() + '</' + tag + '>';
+      }).join('') + '</tr>';
+      hdr = false;
+    });
+    return out + '</table>';
+  });
+
+  s = s.replace(/((?:^[ \t]*[-*+] .+\n?)+)/gm, function(m) {
+    return '<ul>' + m.trim().split('\n').map(function(l){ return '<li>'+l.replace(/^[ \t]*[-*+] /,'').trim()+'</li>'; }).join('') + '</ul>';
+  });
+  s = s.replace(/((?:^[ \t]*\d+\. .+\n?)+)/gm, function(m) {
+    return '<ol>' + m.trim().split('\n').map(function(l){ return '<li>'+l.replace(/^[ \t]*\d+\. /,'').trim()+'</li>'; }).join('') + '</ol>';
+  });
+  s = s.replace(/!\[(.*?)\]\((.+?)\)/g, '<img src="$2" alt="$1">');
+  s = s.replace(/\[(.*?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
+  s = s.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
+  s = s.replace(/__(.+?)__/g,'<strong>$1</strong>').replace(/_([^_\n]+)_/g,'<em>$1</em>');
+  s = s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  s = s.split(/\n{2,}/).map(function(b) {
+    b = b.trim(); if (!b) return '';
+    if (/^<(h[1-3]|ul|ol|table|blockquote|hr)/.test(b) || b.indexOf('\x00') === 0) return b;
+    return '<p>' + b.replace(/\n/g,'<br>') + '</p>';
+  }).join('\n');
+  s = s.replace(/\x00C(\d+)\x00/g, function(_, i) {
+    var blk = blocks[parseInt(i,10)];
+    var esc = blk.code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var id  = 'cb' + Date.now() + i;
+    return '<div class="code-block"><div class="code-header"><span class="code-lang">' + blk.lang + '</span>' +
+      '<button class="copy-code-btn" onclick="cpCode(\''+id+'\')">&#128203; Copy</button></div>' +
+      '<pre id="'+id+'">'+esc+'</pre></div>';
+  });
+  return s;
+}
+
+function cpCode(id) {
+  var pre = document.getElementById(id); if (!pre) return;
+  navigator.clipboard.writeText(pre.innerText).then(function() {
+    var btn = pre.closest('.code-block').querySelector('.copy-code-btn');
+    btn.textContent = '✓ Copied'; setTimeout(function(){ btn.innerHTML='&#128203; Copy'; }, 2000);
+  });
+}
+
+/* ── DOM helpers ── */
+function addUserMsg(text) {
+  welcome.style.display = 'none';
+  var row = document.createElement('div'); row.className = 'msg-row user-row';
+  var safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  row.innerHTML = '<div class="msg-inner"><div class="avatar user">&#129489;</div><div class="msg-content"><div class="msg-name">You</div><div class="msg-text">'+safe+'</div><div class="msg-actions"><button class="act-btn" onclick="cpMsg(this)">&#128203; Copy</button></div></div></div>';
+  chatArea.appendChild(row); scrollEnd();
+}
+
+function addAiMsg(searching) {
+  var row = document.createElement('div'); row.className = 'msg-row ai-row';
+  var dots = searching
+    ? '<div class="typing-dots"><span class="ai-emoji">&#128269;</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>'
+    : '<div class="typing-dots"><span class="ai-emoji">&#129302;</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+  row.innerHTML = '<div class="msg-inner"><div class="avatar ai">&#10022;</div><div class="msg-content"><div class="msg-name">AI Hub</div><div class="msg-text" id="ait">'+dots+'</div><div class="msg-actions"><button class="act-btn" onclick="cpMsg(this)">&#128203; Copy</button><button class="act-btn" onclick="regen()">&#8635; Regenerate</button></div></div></div>';
+  chatArea.appendChild(row); scrollEnd();
+  return document.getElementById('ait');
+}
+
+function typewriter(el, fullText, sources, onDone) {
+  var words = fullText.split(' '), idx = 0, built = '';
+  el.innerHTML = '<span class="cursor"></span>';
+  var t = setInterval(function() {
+    if (idx >= words.length) {
+      clearInterval(t);
+      el.dataset.raw = fullText;
+      var html = renderMD(fullText);
+      /* Append source cards if any */
+      if (sources && sources.length > 0) {
+        html += '<div class="source-label">&#127760; Sources</div><div class="sources">';
+        sources.forEach(function(s) {
+          html += '<a class="source-card" href="'+s.url+'" target="_blank" title="'+s.title+'">&#128279; '+s.title+'</a>';
+        });
+        html += '</div>';
+      }
+      el.innerHTML = html;
+      if (onDone) onDone(); return;
+    }
+    built += (idx===0?'':' ') + words[idx++];
+    el.innerHTML = built.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>') + '<span class="cursor"></span>';
+    scrollEnd();
+  }, 18);
+}
+
+/* ── Main send ── */
+async function send() {
+  var text = userInput.value.trim(); if (!text || busy) return;
+  busy = true; sendBtn.disabled = true;
+  userInput.value = ''; userInput.style.height = 'auto';
+  addUserMsg(text);
+
+  var sources = [];
+  var aiEl;
+
+  try {
+    var promptText = text;
+
+    /* Step 1: Web search if enabled */
+    if (webSearch && SERPER_KEY) {
+      aiEl = addAiMsg(true); /* show search indicator */
+      aiEl.innerHTML = '<div class="typing-dots"><span class="ai-emoji">&#128269;</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><span style="font-size:0.82rem;color:var(--muted);margin-left:8px">Searching the web...</span>';
+      scrollEnd();
+
+      try {
+        var searchData = await searchWeb(text);
+        var built = buildSearchContext(searchData);
+        sources    = built.sources;
+        promptText = built.context + '\n\nUser question: ' + text;
+      } catch(se) {
+        /* Search failed — fall back to normal Gemini */
+        sources    = [];
+        promptText = text;
+      }
+
+      /* Switch to thinking indicator */
+      aiEl.innerHTML = '<div class="typing-dots"><span class="ai-emoji">&#129302;</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+      scrollEnd();
+    } else {
+      aiEl = addAiMsg(false);
+    }
+
+    /* Step 2: Send to Gemini */
+    if (!GROQ_KEY) throw new Error("Groq API Key missing. Please add it in settings.");
+    
+    var groqMessages = [
+      { role: 'system', content: SYSTEM_SEED_USER },
+      { role: 'assistant', content: SYSTEM_SEED_MODEL }
+    ];
+    
+    chatHistory.forEach(function(h) {
+      groqMessages.push({
+        role: h.role === 'model' ? 'assistant' : 'user',
+        content: h.parts ? h.parts[0].text : h.text
+      });
+    });
+    
+    groqMessages.push({ role: 'user', content: promptText });
+
+    var res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + GROQ_KEY 
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: groqMessages,
+        temperature: 0.7
+      })
+    });
+
+    var data = await res.json();
+    if (!res.ok) throw new Error((data.error && data.error.message) ? data.error.message : 'HTTP ' + res.status);
+
+    var reply = data.choices[0].message.content;
+    if (!reply) reply = 'Empty response. Please try again.';
+
+    /* Store original question in history (not the search-augmented prompt) */
+    chatHistory[chatHistory.length - 1] = { role: 'user', parts: [{ text: text }] };
+    chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+
+    typewriter(aiEl, reply, sources, function() { aiEl.id = ''; scrollEnd(); });
+
+  } catch(err) {
+    if (!aiEl) aiEl = addAiMsg(false);
+    var errMsg = err.message || 'Unknown error';
+    var hint = '';
+    var isAuthError = errMsg.toLowerCase().indexOf('key') !== -1 || errMsg.indexOf('401') !== -1 || errMsg.indexOf('403') !== -1;
+
+    if (errMsg.indexOf('429') !== -1 || errMsg.toLowerCase().indexOf('quota') !== -1 || isAuthError) {
+      hint = '<br><br><strong>Fix:</strong> API key issue detected. Ensure your <strong>Groq API Key</strong> is correctly hardcoded and has remaining quota in your <a href="https://console.groq.com/keys" target="_blank" style="color:#60a5fa">Groq Console</a>.';
+    } else if (errMsg.indexOf('Failed to fetch') !== -1) {
+      hint = '<br><br><strong>Fix:</strong> Open this file via <strong>VS Code Live Server</strong>, not by double-clicking.';
+    }
+    aiEl.innerHTML = '<div style="color:#f87171;padding:12px;background:#2a0a0a;border-radius:8px;border:1px solid #7f1d1d;line-height:1.6">&#9888; <strong>Error:</strong> ' + errMsg + hint + '</div>';
+    aiEl.id = '';
+    if (chatHistory.length && chatHistory[chatHistory.length-1].role === 'user') chatHistory.pop();
+  } finally {
+    busy = false; sendBtn.disabled = !userInput.value.trim(); userInput.focus(); scrollEnd();
+  }
+}
+
+function scrollEnd() { chatArea.scrollTop = chatArea.scrollHeight; }
+
+function cpMsg(btn) {
+  var el = btn.closest('.msg-content').querySelector('.msg-text');
+  navigator.clipboard.writeText(el.dataset.raw || el.innerText).then(function() {
+    btn.textContent = '✓ Copied'; setTimeout(function(){ btn.innerHTML='&#128203; Copy'; }, 2000);
+  });
+}
+
+function regen() {
+  if (busy) return;
+  if (chatHistory.length >= 2 && chatHistory[chatHistory.length-1].role === 'model') {
+    chatHistory.pop();
+    var rows = chatArea.querySelectorAll('.msg-row'); rows[rows.length-1].remove();
+    var last = chatHistory[chatHistory.length-1];
+    if (last) { chatHistory.pop(); userInput.value = last.parts[0].text; userInput.dispatchEvent(new Event('input')); send(); }
+  }
+}
+
+function newChat() {
+  chatHistory = []; chatArea.innerHTML = ''; chatArea.appendChild(welcome);
+  welcome.style.display = 'flex'; userInput.value = ''; userInput.style.height = 'auto';
+  sendBtn.disabled = true; userInput.focus();
+}
+
+function exportChat() {
+  if (!chatHistory.length) { alert('Nothing to export yet.'); return; }
+  var out = 'AI Hub Chat Export\n' + new Date().toLocaleString() + '\n\n';
+  chatHistory.forEach(function(m) { out += (m.role==='user'?'You':'AI Hub') + ':\n' + m.parts[0].text + '\n\n---\n\n'; });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([out], {type:'text/plain'}));
+  a.download = 'chat-export.txt'; a.click();
+}
+</script>
+</body>
+</html>

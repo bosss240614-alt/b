@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Translator — AI Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .translate-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 20px;
+    }
+    .swap-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--text);
+      transition: background 0.2s;
+      margin-top: 24px;
+      flex-shrink: 0;
+    }
+    .swap-btn:hover { background: var(--surface); border-color: var(--accent); }
+    .lang-panel { display: flex; flex-direction: column; gap: 8px; }
+    .lang-panel textarea { height: 180px; resize: none; }
+    .char-count { font-size: 0.78rem; color: var(--muted); text-align: right; }
+    @media (max-width: 600px) {
+      .translate-grid { grid-template-columns: 1fr; }
+      .swap-btn { margin: 0 auto; transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <a href="index.html" class="back-link">← Back to Hub</a>
+
+    <div class="page-title">🌍 Translator</div>
+    <p class="page-subtitle">Translate text between dozens of languages with natural, fluent output.</p>
+
+    <div class="translate-grid">
+      <div class="lang-panel">
+        <label for="fromLang">From</label>
+        <select id="fromLang">
+          <option value="auto">Auto-detect</option>
+          <option>English</option><option>Spanish</option><option>French</option>
+          <option>German</option><option>Italian</option><option>Portuguese</option>
+          <option>Arabic</option><option>Chinese (Simplified)</option>
+          <option>Chinese (Traditional)</option><option>Japanese</option>
+          <option>Korean</option><option>Russian</option><option>Hindi</option>
+          <option>Bengali</option><option>Urdu</option><option>Turkish</option>
+          <option>Dutch</option><option>Polish</option><option>Swedish</option>
+          <option>Norwegian</option><option>Danish</option><option>Finnish</option>
+          <option>Greek</option><option>Hebrew</option><option>Thai</option>
+          <option>Vietnamese</option><option>Indonesian</option><option>Malay</option>
+          <option>Swahili</option><option>Yoruba</option><option>Hausa</option>
+          <option>Igbo</option><option>Amharic</option>
+        </select>
+        <textarea id="sourceText" placeholder="Enter text to translate…" oninput="updateCount()"></textarea>
+        <div class="char-count"><span id="charCount">0</span> characters</div>
+      </div>
+
+      <button class="swap-btn" onclick="swapLanguages()" title="Swap languages">⇄</button>
+
+      <div class="lang-panel">
+        <label for="toLang">To</label>
+        <select id="toLang">
+          <option>Spanish</option><option>French</option><option>German</option>
+          <option>Italian</option><option>Portuguese</option><option>Arabic</option>
+          <option>Chinese (Simplified)</option><option>Chinese (Traditional)</option>
+          <option>Japanese</option><option>Korean</option><option>Russian</option>
+          <option>Hindi</option><option>Bengali</option><option>Urdu</option>
+          <option>Turkish</option><option>Dutch</option><option>Polish</option>
+          <option>Swedish</option><option>Norwegian</option><option>Danish</option>
+          <option>Finnish</option><option>Greek</option><option>Hebrew</option>
+          <option>Thai</option><option>Vietnamese</option><option>Indonesian</option>
+          <option>Malay</option><option>Swahili</option><option>Yoruba</option>
+          <option>Hausa</option><option>Igbo</option><option>Amharic</option>
+          <option>English</option>
+        </select>
+        <div class="output-box empty" id="translationOutput" style="min-height:180px; height:180px; overflow-y:auto;">
+          Translation will appear here…
+        </div>
+        <div style="display:flex; gap:8px; margin-top:4px;">
+          <button class="btn btn-ghost" id="copyBtn" onclick="copyTranslation()" disabled style="font-size:0.8rem; padding:6px 14px;">📋 Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:16px;">
+      <button class="btn btn-blue" id="translateBtn" onclick="translate()">🌍 Translate</button>
+      <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+      <label style="display:flex; align-items:center; gap:6px; margin:0; cursor:pointer; font-size:0.88rem; color:var(--muted);">
+        <input type="checkbox" id="formalToggle" /> Formal tone
+      </label>
+    </div>
+
+    <div id="detectedLang" style="font-size:0.85rem; color:var(--muted); display:none;">
+      🔍 Detected language: <strong id="detectedLangName"></strong>
+    </div>
+  </div>
+
+  <script src="js/gemini.js"></script>
+  <script>
+    const outputEl     = document.getElementById('translationOutput');
+    const translateBtn = document.getElementById('translateBtn');
+    const copyBtn      = document.getElementById('copyBtn');
+
+    function updateCount() {
+      document.getElementById('charCount').textContent =
+        document.getElementById('sourceText').value.length;
+    }
+
+    function swapLanguages() {
+      const fromSel = document.getElementById('fromLang');
+      const toSel   = document.getElementById('toLang');
+      const fromVal = fromSel.value === 'auto' ? 'English' : fromSel.value;
+      const toVal   = toSel.value;
+
+      // swap the select values
+      const fromOptions = [...fromSel.options].map(o => o.value || o.text);
+      const toOptions   = [...toSel.options].map(o => o.value || o.text);
+
+      // If we have a detected language name, use that for the swap instead of 'auto'
+      const detLang = document.getElementById('detectedLangName').textContent;
+      const actualFrom = (fromSel.value === 'auto' && detLang) ? detLang : fromVal;
+
+      if (toOptions.includes(actualFrom)) toSel.value = actualFrom;
+      if (fromOptions.includes(toVal)) fromSel.value = toVal;
+      else fromSel.value = 'auto';
+
+      // swap text content if there's a translation
+      const outText = outputEl.classList.contains('empty') ? '' : outputEl.textContent.trim();
+      if (outText && outText !== 'Translation will appear here…') {
+        document.getElementById('sourceText').value = outText;
+        updateCount();
+        outputEl.className = 'output-box empty';
+        outputEl.textContent = 'Translation will appear here…';
+        copyBtn.disabled = true;
+      }
+    }
+
+    async function translate() {
+      const text   = document.getElementById('sourceText').value.trim();
+      const from   = document.getElementById('fromLang').value;
+      const to     = document.getElementById('toLang').value;
+      const formal = document.getElementById('formalToggle').checked;
+
+      if (!text) { alert('Please enter text to translate.'); return; }
+
+      translateBtn.disabled = true;
+      translateBtn.innerHTML = '<span class="spinner"></span> Translating…';
+      outputEl.className = 'output-box empty';
+      outputEl.textContent = 'Translating…';
+      copyBtn.disabled = true;
+      document.getElementById('detectedLang').style.display = 'none';
+      document.getElementById('detectedLangName').textContent = '';
+
+      const fromClause = from === 'auto'
+        ? 'Detect the source language automatically.'
+        : `The source language is ${from}.`;
+
+      const toneClause = formal
+        ? 'Use a formal, professional tone.'
+        : 'Use a natural, conversational tone.';
+
+      const prompt = `Translate the following text to ${to}. ${fromClause} ${toneClause} Return only the translated text, nothing else.\n\nText to translate:\n${text}`;
+
+      // Run detection in parallel if auto is selected to save time
+      if (from === 'auto') detectLanguage(text);
+
+      try {
+        let result = await geminiAsk(prompt);
+        result = result.replace(/^["']|["']$/g, '').trim(); // Remove accidental quotes
+        outputEl.className = 'output-box';
+        outputEl.textContent = result;
+        copyBtn.disabled = false;
+      } catch (err) {
+        let msg = err.message;
+        if (msg === 'Failed to fetch') msg += ' (Try using VS Code Live Server)';
+        outputEl.className = 'output-box';
+        outputEl.textContent = '⚠️ Error: ' + msg;
+      } finally {
+        translateBtn.disabled = false;
+        translateBtn.innerHTML = '🌍 Translate';
+      }
+    }
+
+    async function detectLanguage(text) {
+      try {
+        const result = await geminiAsk(
+          `What language is this text written in? Reply with only the language name, nothing else.\n\n"${text.slice(0, 200)}"`
+        );
+        document.getElementById('detectedLangName').textContent = result.trim();
+        document.getElementById('detectedLang').style.display = 'block';
+      } catch (_) {}
+    }
+
+    function clearAll() {
+      document.getElementById('sourceText').value = '';
+      updateCount();
+      outputEl.className = 'output-box empty';
+      outputEl.textContent = 'Translation will appear here…';
+      copyBtn.disabled = true;
+      document.getElementById('detectedLang').style.display = 'none';
+    }
+
+    function copyTranslation() {
+      navigator.clipboard.writeText(outputEl.textContent).then(() => {
+        copyBtn.textContent = '✓ Copied';
+        setTimeout(() => { copyBtn.textContent = '📋 Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

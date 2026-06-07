@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Key Tester — AI Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .page { max-width: 680px; margin: 0 auto; padding: 40px 24px; }
+
+    .header { text-align: center; margin-bottom: 36px; }
+    .header h1 { font-size: 1.7rem; font-weight: 700; margin-bottom: 8px; }
+    .header p  { color: var(--muted); font-size: 0.92rem; }
+
+    .back-link { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); text-decoration: none; font-size: 0.85rem; margin-bottom: 28px; transition: color .15s; }
+    .back-link:hover { color: var(--text); }
+
+    /* Provider tabs */
+    .tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+    .tab {
+      flex: 1; padding: 10px; border-radius: 10px; border: 2px solid var(--border);
+      background: var(--surface); color: var(--muted); font-family: inherit;
+      font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all .15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .tab:hover { border-color: #555; color: var(--text); }
+    .tab.active-gemini, .tab.active-openai, .tab.active-groq, .tab.active-serper { 
+      border-color: var(--accent); color: var(--accent); background: rgba(59, 130, 246, 0.1); 
+    }
+
+    /* Card */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+    .card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+    label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+
+    .input-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .key-input {
+      flex: 1; background: #0f0f13; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: "Courier New", monospace;
+      font-size: 0.88rem; padding: 10px 14px; outline: none; transition: border-color .15s;
+    }
+    .key-input:focus { border-color: #555; }
+    .key-input::placeholder { color: var(--muted); }
+
+    .toggle-vis {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--muted); padding: 0 12px; cursor: pointer; font-size: 1rem;
+      transition: all .15s; flex-shrink: 0;
+    }
+    .toggle-vis:hover { color: var(--text); }
+
+    .btn {
+      width: 100%; padding: 12px; border-radius: 10px; border: none;
+      font-family: inherit; font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; transition: opacity .15s, transform .1s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-gemini, .btn-openai, .btn-groq, .btn-serper { background: var(--accent); color: #fff; }
+    .btn:hover { background: var(--accent-hover); }
+
+    /* Result box */
+    .result-box {
+      margin-top: 20px; padding: 18px; border-radius: 10px;
+      border: 1px solid var(--border); background: #0f0f13;
+      font-size: 0.88rem; line-height: 1.7; display: none;
+    }
+    .result-box.show { display: block; }
+    .result-box.ok   { border-color: #166534; background: #052e16; }
+    .result-box.err  { border-color: #7f1d1d; background: #2a0a0a; }
+    .result-box.info { border-color: #1e3a5f; background: #0a1628; }
+
+    .status-icon { font-size: 1.4rem; margin-bottom: 8px; display: block; }
+    .status-title { font-weight: 700; font-size: 1rem; margin-bottom: 6px; }
+    .status-title.ok   { color: #4ade80; }
+    .status-title.err  { color: #f87171; }
+    .status-title.info { color: #60a5fa; }
+
+    .result-detail { color: var(--muted); white-space: pre-wrap; word-break: break-word; }
+    .result-reply  { color: var(--text); background: #1a1a24; border-radius: 8px; padding: 12px; margin-top: 10px; font-style: italic; }
+
+    .diagnosis { margin-top: 14px; padding: 12px; background: rgba(255,255,255,0.04); border-radius: 8px; }
+    .diagnosis strong { color: var(--text); }
+    .diagnosis a { color: #60a5fa; }
+
+    /* Info cards */
+    .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+    .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .info-card h4 { font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; }
+    .info-card p  { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+    .info-card a  { color: #60a5fa; text-decoration: none; }
+    .info-card a:hover { text-decoration: underline; }
+
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } .tabs { flex-direction: column; } }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <a href="index.html" class="back-link">&#8592; Back to Hub</a>
+
+  <div class="header">
+    <h1>&#128295; API Key Tester</h1>
+    <p>Test whether your Gemini, OpenAI, or Serper API key is valid and working.</p>
+  </div>
+
+  <!-- Provider tabs -->
+  <div class="tabs">
+    <button class="tab active-gemini" id="tab-gemini" onclick="switchProvider('gemini')">
+      <span>&#10022;</span> Google Gemini
+    </button>
+    <button class="tab" id="tab-groq" onclick="switchProvider('groq')">
+      <span>&#9889;</span> Groq (Fast)
+    </button>
+    <button class="tab" id="tab-openai" onclick="switchProvider('openai')">
+      <span>&#9711;</span> OpenAI / ChatGPT
+    </button>
+    <button class="tab" id="tab-serper" onclick="switchProvider('serper')">
+      <span>&#128269;</span> Serper Search
+    </button>
+  </div>
+
+  <!-- Test card -->
+  <div class="card">
+    <h3 id="card-title">&#10022; Test Gemini API Key</h3>
+
+    <label id="key-label">Paste your Gemini API key (starts with AIzaSy...)</label>
+    <div class="input-row">
+      <input type="password" class="key-input" id="apiKey" placeholder="AIzaSy..." />
+      <button class="toggle-vis" onclick="toggleVis()" title="Show/hide key">&#128065;</button>
+    </div>
+
+    <button class="btn btn-gemini" id="testBtn" onclick="testKey()">
+      &#9654; Test Key
+    </button>
+
+    <div class="result-box" id="resultBox">
+      <span class="status-icon" id="statusIcon"></span>
+      <div class="status-title" id="statusTitle"></div>
+      <div class="result-detail" id="resultDetail"></div>
+      <div class="result-reply" id="resultReply" style="display:none"></div>
+      <div class="diagnosis" id="diagnosis" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Info cards -->
+  <div class="info-grid">
+    <div class="info-card">
+      <h4 style="color:var(--groq)">&#9889; Get a Groq Key</h4>
+      <p>Blazing fast inference for Llama 3 models.<br><br>
+        <a href="https://console.groq.com/keys" target="_blank">console.groq.com &#8599;</a>
+      </p>
+    </div>
+    <div class="info-card">
+      <h4 style="color:var(--gemini)">&#10022; Get a Gemini Key</h4>
+      <p>Free API key from Google AI Studio. No credit card needed.<br><br>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com &#8599;</a>
+      </p>
+    </div>
+    <div class="info-card">
+      <h4 style="color:var(--openai)">&#9711; Get an OpenAI Key</h4>
+      <p>Requires an OpenAI account. Free credits for new users.<br><br>
+        <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com &#8599;</a>
+      </p>
+    </div>
+    <div class="info-card">
+      <h4 style="color:var(--serper)">&#128269; Get a Serper Key</h4>
+      <p>Google Search API. 2,500 free searches/month. No credit card needed.<br><br>
+        <a href="https://serper.dev" target="_blank">serper.dev &#8599;</a>
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var provider = 'gemini';
+
+function switchProvider(p) {
+  provider = p;
+
+  document.getElementById('tab-gemini').className = 'tab' + (p==='gemini' ? ' active-gemini' : '');
+  document.getElementById('tab-openai').className = 'tab' + (p==='openai' ? ' active-openai' : '');
+  document.getElementById('tab-groq').className = 'tab' + (p==='groq' ? ' active-groq' : '');
+  document.getElementById('tab-serper').className = 'tab' + (p==='serper' ? ' active-serper' : '');
+
+  var titles   = { gemini: '&#10022; Test Gemini API Key',  openai: '&#9711; Test OpenAI API Key',       serper: '&#128269; Test Serper API Key', groq: '&#9889; Test Groq API Key' };
+  var labels   = { gemini: 'Paste your Gemini API key (starts with AIzaSy...)', openai: 'Paste your OpenAI API key (starts with sk-...)', serper: 'Paste your Serper API key', groq: 'Paste your Groq API key (starts with gsk_...)' };
+  var holders  = { gemini: 'AIzaSy...',  openai: 'sk-...',  serper: 'your-serper-key...', groq: 'gsk_...' };
+  var btnClass = { gemini: 'btn btn-gemini', openai: 'btn btn-openai', serper: 'btn btn-serper', groq: 'btn btn-groq' };
+
+  document.getElementById('card-title').innerHTML   = titles[p];
+  document.getElementById('key-label').textContent  = labels[p];
+  document.getElementById('apiKey').placeholder     = holders[p];
+  document.getElementById('testBtn').className      = btnClass[p];
+  document.getElementById('apiKey').value = '';
+  hideResult();
+}
+
+function toggleVis() {
+  var inp = document.getElementById('apiKey');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function hideResult() {
+  var box = document.getElementById('resultBox');
+  box.className = 'result-box';
+  box.style.display = 'none';
+}
+
+function showResult(type, icon, title, detail, reply, diagnosisHtml) {
+  var box = document.getElementById('resultBox');
+  box.className = 'result-box show ' + type;
+  box.style.display = 'block';
+
+  document.getElementById('statusIcon').textContent  = icon;
+  document.getElementById('statusTitle').textContent = title;
+  document.getElementById('statusTitle').className   = 'status-title ' + type;
+  document.getElementById('resultDetail').textContent = detail;
+
+  var replyEl = document.getElementById('resultReply');
+  if (reply) { replyEl.textContent = '"' + reply + '"'; replyEl.style.display = 'block'; }
+  else { replyEl.style.display = 'none'; }
+
+  var diagEl = document.getElementById('diagnosis');
+  if (diagnosisHtml) { diagEl.innerHTML = diagnosisHtml; diagEl.style.display = 'block'; }
+  else { diagEl.style.display = 'none'; }
+}
+
+async function testKey() {
+  var key = document.getElementById('apiKey').value.trim();
+  var btn = document.getElementById('testBtn');
+
+  if (!key) {
+    showResult('err', '&#10060;', 'No key entered', 'Please paste your API key in the field above.', null, null);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Testing...';
+  hideResult();
+
+  if (provider === 'gemini') {
+    await testGemini(key);
+  } else if (provider === 'groq') {
+    await testGroq(key);
+  } else if (provider === 'openai') {
+    await testOpenAI(key);
+  } else {
+    await testSerper(key);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '&#9654; Test Key';
+}
+
+/* ── Test Gemini ── */
+async function testGemini(key) {
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key;
+  try {
+    var res  = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Reply with exactly three words: Gemini key works' }] }] })
+    });
+    var data = await res.json();
+
+    if (!res.ok) {
+      var errMsg = data.error ? data.error.message : 'HTTP ' + res.status;
+      var diag   = getDiagnosisGemini(res.status, errMsg);
+      showResult('err', '&#10060;', 'Key Failed — HTTP ' + res.status, errMsg, null, diag);
+      return;
+    }
+
+    var reply = data.candidates[0].content.parts[0].text.trim();
+    showResult('ok', '&#9989;', 'Gemini Key is Working!',
+      'Key: ' + key.slice(0,12) + '...' + key.slice(-4) + '\nModel: gemini-2.0-flash\nStatus: Active',
+      reply,
+      '<strong>Next step:</strong> Copy this key and replace the old one in <code>chat.html</code> and <code>js/gemini.js</code>.<br>Search for <code>AIzaSy</code> and replace the full key.'
+    );
+  } catch(err) {
+    showResult('err', '&#10060;', 'Network Error', err.message, null, getNetworkDiag());
+  }
+}
+
+/* ── Test Groq ── */
+async function testGroq(key) {
+  var url = 'https://api.groq.com/openai/v1/chat/completions';
+  try {
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: 'Reply with exactly three words: Groq key works' }]
+      })
+    });
+    var data = await res.json();
+
+    if (!res.ok) {
+      var errMsg = data.error ? data.error.message : 'HTTP ' + res.status;
+      showResult('err', '&#10060;', 'Key Failed — HTTP ' + res.status, errMsg, null, '<strong>Check:</strong> Is your key active at <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>?');
+      return;
+    }
+
+    var reply = data.choices[0].message.content.trim();
+    showResult('ok', '&#9989;', 'Groq Key is Working!',
+      'Key: ' + key.slice(0,8) + '...' + key.slice(-4) + '\nModel: llama-3.3-70b-versatile',
+      reply,
+      '<strong>Next step:</strong> Save this key in your Hub settings and select "Groq" as the provider.'
+    );
+  } catch(err) {
+    showResult('err', '&#10060;', 'Network Error', err.message, null, getNetworkDiag());
+  }
+}
+
+/* ── Test OpenAI ── */
+async function testOpenAI(key) {
+  var url = 'https://api.openai.com/v1/chat/completions';
+  try {
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: 'Reply with exactly three words: OpenAI key works' }],
+        max_tokens: 20
+      })
+    });
+    var data = await res.json();
+
+    if (!res.ok) {
+      var errMsg = data.error ? data.error.message : 'HTTP ' + res.status;
+      var diag   = getDiagnosisOpenAI(res.status, errMsg);
+      showResult('err', '&#10060;', 'Key Failed — HTTP ' + res.status, errMsg, null, diag);
+      return;
+    }
+
+    var reply = data.choices[0].message.content.trim();
+    var model = data.model || 'gpt-3.5-turbo';
+    showResult('ok', '&#9989;', 'OpenAI Key is Working!',
+      'Key: ' + key.slice(0,7) + '...' + key.slice(-4) + '\nModel tested: ' + model + '\nStatus: Active',
+      reply,
+      '<strong>Next step:</strong> You can use this key to power the AI Hub tools with OpenAI models.'
+    );
+  } catch(err) {
+    showResult('err', '&#10060;', 'Network Error', err.message, null, getNetworkDiag());
+  }
+}
+
+/* ── Test Serper ── */
+async function testSerper(key) {
+  var url = 'https://google.serper.dev/search';
+  try {
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': key
+      },
+      body: JSON.stringify({ q: 'test', num: 1 })
+    });
+    var data = await res.json();
+
+    if (!res.ok) {
+      var errMsg = data.message || data.error || ('HTTP ' + res.status);
+      showResult('err', '&#10060;', 'Key Failed — HTTP ' + res.status, errMsg, null, getDiagnosisSerper(res.status, errMsg));
+      return;
+    }
+
+    /* Extract first organic result as proof */
+    var firstResult = '';
+    if (data.organic && data.organic.length > 0) {
+      firstResult = data.organic[0].title + ' — ' + data.organic[0].link;
+    } else if (data.knowledgeGraph && data.knowledgeGraph.title) {
+      firstResult = data.knowledgeGraph.title;
+    } else {
+      firstResult = 'Search returned results successfully.';
+    }
+
+    var credits = data.credits !== undefined ? '\nCredits remaining: ' + data.credits : '';
+
+    showResult('ok', '&#9989;', 'Serper Key is Working!',
+      'Key: ' + key.slice(0,8) + '...' + key.slice(-4) + '\nEndpoint: google.serper.dev/search\nStatus: Active' + credits,
+      firstResult,
+      '<strong>What Serper does:</strong> Provides real-time Google Search results via API. Use it to add web search capability to your AI tools.<br><br>' +
+      '<strong>Free tier:</strong> 2,500 searches/month — no credit card needed.<br>' +
+      '<a href="https://serper.dev/dashboard" target="_blank">View your dashboard &#8599;</a>'
+    );
+  } catch(err) {
+    showResult('err', '&#10060;', 'Network Error', err.message, null, getNetworkDiag());
+  }
+}
+
+/* ── Diagnosis helpers ── */
+function getDiagnosisGemini(status, msg) {
+  if (status === 429) return '<strong>429 — Rate Limit Exceeded</strong><br>This key has used up its free quota. Get a new key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>.';
+  if (status === 400) return '<strong>400 — Bad Request</strong><br>The key format looks wrong. Gemini keys start with <code>AIzaSy</code>. Get a valid key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>.';
+  if (status === 403) return '<strong>403 — Forbidden</strong><br>The key is invalid or the Gemini API is not enabled. Create a new key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>.';
+  if (status === 404) return '<strong>404 — Model Not Found</strong><br>The model <code>gemini-2.0-flash</code> is not available for this key. Try creating a new key.';
+  return '<strong>Error ' + status + '</strong><br>' + msg;
+}
+
+function getDiagnosisOpenAI(status, msg) {
+  if (status === 401) return '<strong>401 — Invalid API Key</strong><br>The key is incorrect or has been revoked. Get a valid key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>.';
+  if (status === 429) return '<strong>429 — Rate Limit / Quota Exceeded</strong><br>Either you\'ve hit the rate limit or your account has no credits. Check your usage at <a href="https://platform.openai.com/usage" target="_blank">platform.openai.com/usage</a>.';
+  if (status === 400) return '<strong>400 — Bad Request</strong><br>The key format looks wrong. OpenAI keys start with <code>sk-</code>.';
+  if (status === 403) return '<strong>403 — Forbidden</strong><br>Your account may be suspended or the key lacks permissions.';
+  if (status === 500) return '<strong>500 — OpenAI Server Error</strong><br>OpenAI\'s servers are having issues. Try again in a few minutes.';
+  return '<strong>Error ' + status + '</strong><br>' + msg;
+}
+
+function getDiagnosisSerper(status, msg) {
+  if (status === 401) return '<strong>401 — Unauthorized</strong><br>The API key is missing or invalid. Get a valid key at <a href="https://serper.dev" target="_blank">serper.dev</a>.';
+  if (status === 403) return '<strong>403 — Forbidden</strong><br>The key is invalid or your account is suspended. Check your account at <a href="https://serper.dev/dashboard" target="_blank">serper.dev/dashboard</a>.';
+  if (status === 429) return '<strong>429 — Rate Limit Exceeded</strong><br>You have used up your monthly search quota. Upgrade your plan at <a href="https://serper.dev/dashboard" target="_blank">serper.dev/dashboard</a>.';
+  if (status === 400) return '<strong>400 — Bad Request</strong><br>The request format is wrong. Make sure you pasted the full API key correctly.';
+  return '<strong>Error ' + status + '</strong><br>' + msg + '<br>Check your account at <a href="https://serper.dev/dashboard" target="_blank">serper.dev/dashboard</a>.';
+}
+
+function getNetworkDiag() {
+  return '<strong>Network Error</strong><br>Possible causes:<br>' +
+    '&bull; No internet connection<br>' +
+    '&bull; Opening file directly (file://) — use <strong>VS Code Live Server</strong> instead<br>' +
+    '&bull; Browser blocking the request';
+}
+</script>
+</body>
+</html>

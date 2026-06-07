@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Helper — AI Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .mode-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+    .tab-btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active, .tab-btn:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    #codeOutput pre {
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 16px;
+      overflow-x: auto;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <a href="index.html" class="back-link">← Back to Hub</a>
+
+    <div class="page-title">💻 Code Helper</div>
+    <p class="page-subtitle">Generate, explain, debug, or review code in any language.</p>
+
+    <div class="mode-tabs">
+      <button class="tab-btn active" onclick="setMode('generate', this)">⚡ Generate</button>
+      <button class="tab-btn" onclick="setMode('explain', this)">🔍 Explain</button>
+      <button class="tab-btn" onclick="setMode('debug', this)">🐛 Debug</button>
+      <button class="tab-btn" onclick="setMode('review', this)">✅ Review</button>
+      <button class="tab-btn" onclick="setMode('convert', this)">🔄 Convert</button>
+    </div>
+
+    <div class="field">
+      <label id="inputLabel">Describe what you want to build</label>
+      <textarea id="codeInput" rows="7" placeholder="e.g. A JavaScript function that debounces another function"></textarea>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; align-items:flex-end;">
+      <div class="field" style="margin:0; flex:1; min-width:160px;">
+        <label for="langSelect">Language</label>
+        <select id="langSelect">
+          <option>JavaScript</option>
+          <option>Python</option>
+          <option>TypeScript</option>
+          <option>Java</option>
+          <option>C++</option>
+          <option>C#</option>
+          <option>Go</option>
+          <option>Rust</option>
+          <option>PHP</option>
+          <option>Swift</option>
+          <option>Kotlin</option>
+          <option>SQL</option>
+          <option>HTML/CSS</option>
+          <option>Bash</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0; flex:1; min-width:160px; display:none;" id="targetLangField">
+        <label for="targetLang">Target language (convert)</label>
+        <select id="targetLang">
+          <option>Python</option>
+          <option>JavaScript</option>
+          <option>TypeScript</option>
+          <option>Java</option>
+          <option>C++</option>
+          <option>Go</option>
+        </select>
+      </div>
+      <button class="btn btn-blue" id="runBtn" onclick="runMode()">▶ Run</button>
+      <button class="btn btn-ghost" onclick="clearCode()">Clear</button>
+    </div>
+
+    <label>Output</label>
+    <div class="output-box empty" id="codeOutput">Your result will appear here…</div>
+
+    <div style="margin-top:12px; display:flex; gap:8px;">
+      <button class="btn btn-ghost" id="copyBtn" onclick="copyOutput()" disabled>📋 Copy</button>
+    </div>
+  </div>
+
+  <script src="js/gemini.js"></script>
+  <script>
+    let currentMode = 'generate';
+    const outputEl = document.getElementById('codeOutput');
+    const copyBtn  = document.getElementById('copyBtn');
+    const runBtn   = document.getElementById('runBtn');
+
+    const modeConfig = {
+      generate: {
+        label: 'Describe what you want to build',
+        placeholder: 'e.g. A JavaScript function that debounces another function',
+        prompt: (input, lang) => `Write a clean, well-commented ${lang} code snippet that does the following:\n\n${input}\n\nReturn only the code with brief inline comments. No extra explanation outside the code block.`
+      },
+      explain: {
+        label: 'Paste code to explain',
+        placeholder: 'Paste your code here…',
+        prompt: (input, lang) => `Explain the following ${lang} code clearly, step by step. Describe what each part does in plain English:\n\n\`\`\`${lang}\n${input}\n\`\`\``
+      },
+      debug: {
+        label: 'Paste buggy code',
+        placeholder: 'Paste the code with bugs here…',
+        prompt: (input, lang) => `Debug the following ${lang} code. Identify all bugs, explain what is wrong, and provide the corrected version:\n\n\`\`\`${lang}\n${input}\n\`\`\``
+      },
+      review: {
+        label: 'Paste code to review',
+        placeholder: 'Paste your code here for a review…',
+        prompt: (input, lang) => `Review the following ${lang} code. Comment on code quality, potential issues, performance, security, and suggest improvements:\n\n\`\`\`${lang}\n${input}\n\`\`\``
+      },
+      convert: {
+        label: 'Paste code to convert',
+        placeholder: 'Paste the code you want to convert…',
+        prompt: (input, lang, target) => `Convert the following ${lang} code to ${target}. Keep the same logic and add comments where needed:\n\n\`\`\`${lang}\n${input}\n\`\`\``
+      }
+    };
+
+    function setMode(mode, btn) {
+      currentMode = mode;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const cfg = modeConfig[mode];
+      document.getElementById('inputLabel').textContent = cfg.label;
+      document.getElementById('codeInput').placeholder = cfg.placeholder;
+      document.getElementById('targetLangField').style.display = mode === 'convert' ? 'block' : 'none';
+      outputEl.className = 'output-box empty';
+      outputEl.textContent = 'Your result will appear here…';
+      copyBtn.disabled = true;
+    }
+
+    async function runMode() {
+      const input  = document.getElementById('codeInput').value.trim();
+      const lang   = document.getElementById('langSelect').value;
+      const target = document.getElementById('targetLang').value;
+
+      if (!input) { alert('Please enter some input first.'); return; }
+
+      runBtn.disabled = true;
+      runBtn.innerHTML = '<span class="spinner"></span>';
+      outputEl.className = 'output-box empty';
+      outputEl.textContent = 'Processing…';
+      copyBtn.disabled = true;
+
+      try {
+        const cfg    = modeConfig[currentMode];
+        const prompt = cfg.prompt(input, lang, target);
+        const result = await geminiAsk(prompt);
+
+        // render markdown-style code blocks
+        outputEl.className = 'output-box';
+        outputEl.innerHTML = formatOutput(result);
+        copyBtn.disabled = false;
+      } catch (err) {
+        outputEl.className = 'output-box';
+        outputEl.textContent = '⚠️ Error: ' + err.message;
+      } finally {
+        runBtn.disabled = false;
+        runBtn.innerHTML = '▶ Run';
+      }
+    }
+
+    function formatOutput(text) {
+      // Split on code fences first, then escape HTML only in non-code parts
+      const parts = text.split(/(```[\w]*\n?[\s\S]*?```)/g);
+      return parts.map(part => {
+        const fenceMatch = part.match(/^```([\w]*)\n?([\s\S]*?)```$/);
+        if (fenceMatch) {
+          const code = fenceMatch[2]
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          return `<pre><code>${code}</code></pre>`;
+        }
+        // escape and convert **bold** and newlines in prose
+        return part
+          .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n/g, '<br>');
+      }).join('');
+    }
+
+    function clearCode() {
+      document.getElementById('codeInput').value = '';
+      outputEl.className = 'output-box empty';
+      outputEl.textContent = 'Your result will appear here…';
+      copyBtn.disabled = true;
+    }
+
+    function copyOutput() {
+      navigator.clipboard.writeText(outputEl.innerText).then(() => alert('Copied!'));
+    }
+  </script>
+</body>
+</html>

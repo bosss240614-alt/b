@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creative Writer — AI Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .format-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .format-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    .format-card .icon { font-size: 1.5rem; display:block; margin-bottom:4px; }
+    .format-card.selected, .format-card:hover {
+      border-color: var(--accent);
+      color: #fff;
+      background: rgba(59, 130, 246, 0.1);
+    }
+    #writeOutput { min-height: 200px; line-height: 1.8; }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <a href="index.html" class="back-link">← Back to Hub</a>
+
+    <div class="page-title">✍️ Creative Writer</div>
+    <p class="page-subtitle">Generate stories, poems, essays, and more on any topic you choose.</p>
+
+    <label style="margin-bottom:12px; display:block;">Choose a format</label>
+    <div class="format-grid">
+      <div class="format-card selected" onclick="selectFormat(this, 'short story')">
+        <span class="icon">📖</span>Short Story
+      </div>
+      <div class="format-card" onclick="selectFormat(this, 'poem')">
+        <span class="icon">🌸</span>Poem
+      </div>
+      <div class="format-card" onclick="selectFormat(this, 'haiku')">
+        <span class="icon">🍃</span>Haiku
+      </div>
+      <div class="format-card" onclick="selectFormat(this, 'persuasive essay')">
+        <span class="icon">📣</span>Essay
+      </div>
+      <div class="format-card" onclick="selectFormat(this, 'song lyrics')">
+        <span class="icon">🎵</span>Song Lyrics
+      </div>
+      <div class="format-card" onclick="selectFormat(this, 'joke or comedy sketch')">
+        <span class="icon">😂</span>Comedy
+      </div>
+      <div class="format-card" onclick="selectFormat(this, 'motivational speech')">
+        <span class="icon">🔥</span>Speech
+      </div>
+      <div class="format-card" onclick="selectFormat(this, 'bedtime story for children')">
+        <span class="icon">🌙</span>Bedtime Story
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="topicInput">Topic or prompt</label>
+      <textarea id="topicInput" rows="3" placeholder="e.g. A lonely astronaut who discovers a garden on Mars…"></textarea>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; align-items:flex-end;">
+      <div class="field" style="margin:0; flex:1; min-width:160px;">
+        <label for="toneSelect">Tone</label>
+        <select id="toneSelect">
+          <option>Imaginative</option>
+          <option>Humorous</option>
+          <option>Dark</option>
+          <option>Romantic</option>
+          <option>Inspirational</option>
+          <option>Mysterious</option>
+          <option>Neutral</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0; flex:1; min-width:160px;">
+        <label for="lengthSelect">Length</label>
+        <select id="lengthSelect">
+          <option value="short">Short</option>
+          <option value="medium" selected>Medium</option>
+          <option value="long">Long</option>
+        </select>
+      </div>
+      <button class="btn btn-pink" id="writeBtn" onclick="generate()">✨ Generate</button>
+      <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+    </div>
+
+    <label>Your creation</label>
+    <div class="output-box empty" id="writeOutput">Your creative piece will appear here…</div>
+
+    <div style="margin-top:12px; display:flex; gap:8px;">
+      <button class="btn btn-ghost" id="copyBtn" onclick="copyOutput()" disabled>📋 Copy</button>
+      <button class="btn btn-ghost" id="regenBtn" onclick="generate()" disabled>🔄 Regenerate</button>
+    </div>
+  </div>
+
+  <script src="js/gemini.js"></script>
+  <script>
+    let selectedFormat = 'short story';
+    const outputEl = document.getElementById('writeOutput');
+    const writeBtn = document.getElementById('writeBtn');
+    const copyBtn  = document.getElementById('copyBtn');
+    const regenBtn = document.getElementById('regenBtn');
+
+    function selectFormat(el, format) {
+      document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedFormat = format;
+    }
+
+    const lengthGuide = {
+      short:  'Keep it brief — around 100–150 words.',
+      medium: 'Aim for around 250–350 words.',
+      long:   'Write a longer piece of around 500–700 words.'
+    };
+
+    async function generate() {
+      const topic  = document.getElementById('topicInput').value.trim();
+      const tone   = document.getElementById('toneSelect').value;
+      const length = document.getElementById('lengthSelect').value;
+
+      if (!topic) { alert('Please enter a topic or prompt.'); return; }
+
+      writeBtn.disabled = true;
+      regenBtn.disabled = true;
+      writeBtn.innerHTML = '<span class="spinner"></span> Writing…';
+      outputEl.className = 'output-box empty';
+      outputEl.textContent = 'Crafting your piece…';
+      copyBtn.disabled = true;
+
+      const prompt = `Write a ${tone.toLowerCase()} ${selectedFormat} about the following topic:\n\n"${topic}"\n\n${lengthGuide[length]}\n\nBe creative, engaging, and original. Do not include a title unless it fits naturally.`;
+
+      try {
+        const result = await geminiAsk(prompt);
+        outputEl.className = 'output-box';
+        outputEl.textContent = result;
+        copyBtn.disabled = false;
+        regenBtn.disabled = false;
+      } catch (err) {
+        outputEl.className = 'output-box';
+        outputEl.textContent = '⚠️ Error: ' + err.message;
+      } finally {
+        writeBtn.disabled = false;
+        writeBtn.innerHTML = '✨ Generate';
+      }
+    }
+
+    function clearAll() {
+      document.getElementById('topicInput').value = '';
+      outputEl.className = 'output-box empty';
+      outputEl.textContent = 'Your creative piece will appear here…';
+      copyBtn.disabled = true;
+      regenBtn.disabled = true;
+    }
+
+    function copyOutput() {
+      navigator.clipboard.writeText(outputEl.textContent).then(() => alert('Copied!'));
+    }
+  </script>
+</body>
+</html>
